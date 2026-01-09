@@ -1,0 +1,56 @@
+---
+title: "Week 1 Lab: Bee Wrangling"
+author: "Zach Loo"
+---
+
+```{r}
+# Load packages
+library(tidyverse)
+```
+
+```{r}
+# Load data
+bees <- read_csv(here::here("week1", "data", "stressor.csv"))
+```
+
+```{r}
+bees_clean <- bees |> 
+    # Use regex to remove unwanted characters
+    mutate(state = str_replace_all(string = state, pattern = "[^A-Za-z ]", replacement = ""), 
+    stressor = str_replace_all(string = stressor, pattern = "[^A-Za-z ]", replacement = "")) |> 
+
+    # Clean column names
+    janitor::clean_names() |> 
+
+    # Pivot dataframe to long
+    pivot_longer(cols = "january_march":"october_december",
+    names_to = "months",
+    values_to = "stress_pct") |> 
+
+    # Create quarter column
+    mutate(quarter = case_when(
+        months == "january_march" ~ 1,
+        months == "april_june" ~ 2,
+        months == "july_september" ~ 3,
+        months == "october_december" ~ 4)) |> 
+
+    # Filter out unwanted rows & filter to rows of interest
+    filter(state != "United States", state != "Other States") |> 
+    filter(stressor == "Disesases", state == "Colorado")
+
+```
+
+```{r}
+# Group & summarise
+bees_summary <- bees_clean |> 
+    group_by(year, quarter) |> 
+    summarise(avg_stress = mean(stress_pct, na.rm = TRUE))
+```
+
+```{r}
+# Visualize
+ggplot(bees_summary, aes(quarter, avg_stress, color = factor(year))) +
+    geom_line() +
+    labs(x = "Quarter", y = "Average Percent of Bee Colonies Affected", title = "Disease Stress on Colorado Bee Colonies", color = "Year") +
+    theme_classic()
+```
