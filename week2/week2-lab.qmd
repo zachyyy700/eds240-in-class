@@ -1,4 +1,21 @@
 ---
-title: "Week 1 Lab: Bee Wrangling"
+title: "Week 2 Lab: Ocean Currents"
 author: "Zach Loo"
 ---
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| alt-text: "I wish penguins were real."
+library(ggplot2)
+library(palmerpenguins)
+
+ggplot(data = penguins, aes(x = body_mass_g, fill = species)) +
+  geom_histogram(alpha = 0.5, 
+                 position = "identity") +
+  scale_fill_manual(values = c("darkorange","purple","cyan4")) +
+  labs(x = "Body mass (g)",
+       y = "Frequency",
+       title = "Penguin body masses")
+```
