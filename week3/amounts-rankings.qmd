@@ -88,9 +88,23 @@ After building some basic plots, we'll practice:
 #| layout-ncol: 2
 
 #............................bar plot............................
-
+ca_region |> 
+  group_by(subregion_name) |> 
+  summarise(mean_sui_2010_2020 = mean(sui_frac, na.rm = TRUE)) |> 
+  mutate(subregion_name = fct_reorder(subregion_name, mean_sui_2010_2020)) |> 
+  ggplot(aes(mean_sui_2010_2020, subregion_name)) +
+  geom_col() +
+  geom_text(aes(label = round(mean_sui_2010_2020, 2)), hjust = 1.2, color = 'white')
 #..........................lollipop plot.........................
-
+ca_region |> 
+  group_by(subregion_name) |> 
+  summarise(mean_sui_2010_2020 = mean(sui_frac, na.rm = TRUE)) |> 
+  mutate(subregion_name = fct_reorder(subregion_name, mean_sui_2010_2020)) |> 
+  ggplot(aes(mean_sui_2010_2020, subregion_name)) +
+  geom_point() +
+  geom_linerange(aes(xmin= 0, xmax = mean_sui_2010_2020)) +
+  geom_text(aes(label = round(mean_sui_2010_2020, 2)), hjust = -0.3) +
+  scale_x_continuous(limits = c(0, 0.7))
 ```
 
 ## Note 1: `geom_col()` vs. `geom_bar()`
@@ -112,6 +126,9 @@ ca_region |>
 
 #.......................geom_bar() example.......................
 # How many observations (rows) exist for each subregion?
+ggplot(ca_region, aes(y = subregion_name)) +
+  geom_bar() +
+  scale_x_continuous(labels = scales::label_comma())
 ```
 
 ## Stacked Bar Plots
@@ -144,7 +161,10 @@ sui_severity <- ca_region |>
   summarize(tot_num_sui = n()) |> 
   drop_na(sui_category) |> 
   mutate(month = month.abb[month],
-         month = factor(month, levels = c(month.abb[10:12], month.abb[1:9]))) # order months Oct > Sep (water year)
+         month = factor(month, levels = c(month.abb[10:12], month.abb[1:9]))) |> # order months Oct > Sep (water year)
+  mutate(sui_category = factor(sui_category, 
+                               levels = c("Very low", "Low",
+                                          "Moderate", "High", "Severe")))
 ```
 
 Then create a stacked bar plot:
@@ -162,6 +182,11 @@ sui_colors <- c("Severe" = "#720C0F",
                 "Very low" = "#217AB5")
 
 #......................% stacked bar chart.......................
+ggplot(sui_severity, aes(month, tot_num_sui, fill = sui_category)) +
+  geom_col(position= 'fill') +
+  scale_fill_manual(values = sui_colors) +
+  scale_y_continuous(labels = scales::label_percent(scale = 100))
+  
 
 ```
 
@@ -184,12 +209,19 @@ First, we need to do a bit of wrangling:
 #............df of annual mean SUI by subregion & year...........
 heatmap_data <- ca_region |> 
   group_by(subregion_name, year) |> 
-  summarize(annual_mean_sui = mean(sui_frac, na.rm = TRUE))
+  summarize(annual_mean_sui = mean(sui_frac, na.rm = TRUE)) |> 
+  ungroup()
 
 #.determine order of subregions based on highest avg SUI in 2015.
-
+order_2015 <- heatmap_data |> 
+  filter(year == 2015) |> 
+  arrange(annual_mean_sui) |> 
+  mutate(order = row_number()) |> 
+  select(subregion_name, order)
 #........join order with rest of data to set factor levels.......
-
+heatmap_order <- heatmap_data |> 
+  left_join(order_2015) |> 
+  mutate(subregion_name = fct_reorder(.f = subregion_name, .x = order))
 ```
 
 Then, create heatmap:
@@ -198,7 +230,13 @@ Then, create heatmap:
 #| eval: true
 #| echo: false
 #.........................create heatmap.........................
-
+ggplot(heatmap_order, aes(x = year, y = subregion_name, fill = annual_mean_sui)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  scale_x_continuous(breaks = seq(2010, 2020, by = 2)) +
+  labs(fill = "Annual Mean Surface-Water-Supply and\nUse Index (SUI)") +
+  guides(fill = guide_colorbar(title.position= "top", barwidth = 15, barheight = 0.75)) +
+  theme(legend.position = "top")
 ```
 
 ::: {.callout-note}
@@ -234,5 +272,10 @@ Then, create dumbbell plot:
 
 ```{r}
 #......................create dumbbell plot......................
-
+ggplot(sbc_subbasin_monthly) +
+  geom_linerange(aes(y= month, xmin = mean_consum, xmax = mean_avail)) +
+  geom_point(aes(x = mean_avail, y = month), color = "skyblue", size = 4, stroke = 2) +
+  geom_point(aes(x = mean_consum, y = month), color = "firebrick", size = 4, shape = 21, stroke = 2) +
+  labs(x = "Mean Monthly Water Availability & Consumption (mm)") +
+  theme(axis.title.y = element_blank())
 ```
