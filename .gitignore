@@ -1,6 +1,10 @@
 # Render artifacts
 week*/*_files
 
+# DS Store
+.DS_Store
+week*/.DS_Store
+
 # Data
 week*/data/
 
