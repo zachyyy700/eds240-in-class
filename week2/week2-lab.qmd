@@ -1,14 +1,11 @@
 ---
-title: "Week 2 Lab: Ocean Currents"
+title: "Week 2 Lab: Alt Text"
 author: "Zach Loo"
 ---
 
 ```{r}
-#| warning: false
-#| message: false
-#| echo: false
-#| alt-text: "I wish penguins were real."
 library(ggplot2)
+library(tidyverse)
 library(palmerpenguins)
 
 ggplot(data = penguins, aes(x = body_mass_g, fill = species)) +
