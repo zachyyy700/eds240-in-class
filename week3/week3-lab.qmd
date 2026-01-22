@@ -1,0 +1,12 @@
+---
+title: "Lab 3: Drought Analysis"
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+drought <- read_csv(here::here("week3/", "data", "drought.csv")) |> 
+    janitor::clean_names()
+```
