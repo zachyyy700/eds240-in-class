@@ -1,0 +1,295 @@
+---
+title: "TEMPLATE - visualizing numerical relationships"
+author: "Your Name"
+date: 2026-01-28
+toc: true
+editor_options: 
+  chunk_output_type: inline
+---
+
+::: {.callout-note}
+This template follows [relationships slides](https://eds-240-data-viz.github.io/course-materials/lecture-slides/SLIDES-relationships.html#/title-slide){target="_blank"}. Please be sure to cross-reference the slides, which contain important information and additional context!
+:::
+
+## Setup
+
+Data are downloaded from [DataOne](https://search.dataone.org/view/https%3A%2F%2Fpasta.lternet.edu%2Fpackage%2Fmetadata%2Feml%2Fknb-lter-hbr%2F208%2F14){target="_blank} (find instructions for getting the download link on the [`{metajam}` package README](https://github.com/NCEAS/metajam?tab=readme-ov-file#how-to-get-the-url-to-your-dataset-of-interest-){target="_blank}).
+
+```{r}
+#| eval: false
+#| echo: true
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##                                    setup                                 ----
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#..........................load packages.........................
+library(metajam) 
+library(tidyverse)
+library(ggExtra)
+library(ggdensity)
+
+#...................download data from DataOne...................
+# you only need to do this once (then I recommend commenting it out)!
+# metajam::download_d1_data("https://cn.dataone.org/cn/v2/resolve/https%3A%2F%2Fpasta.lternet.edu%2Fpackage%2Fdata%2Feml%2Fknb-lter-hbr%2F208%2F14%2F024b6acc5cb2e03a14fff5558bbffc0c",
+#                  path = here::here("week4")) 
+
+#  ~ NOTE: You should rename the downloaded folder to 'data/' so that it's automatically ignored by your repo's .gitignore! ~
+
+#....................read in downloaded files....................
+#stream_chem_all <- metajam::read_d1_files(here::here("week4", "data"))
+
+#........................get the data file.......................
+# stream_chem_data <- stream_chem_all$`HubbardBrook_weekly_stream_chemistry_1963-2025.csv`
+
+stream_chem_all <- readr::read_csv(here::here("week4", "data", "HubbardBrook_weekly_stream_chemistry_1963-2025.csv"))
+```
+
+## Scatter plots
+
+### Basic scatter plot
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#.......................basic scatter plot.......................
+p1 <- stream_chem_all |> 
+  filter(waterYr == 2024) |> 
+  ggplot(aes(DOC, pH)) +
+  geom_point(alpha = 0.4)
+```
+
+### Alt 1: add a rug plot
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#.......................scatter + rug plot.......................
+p1 +
+  geom_rug()
+```
+
+### Alt 2: marginal plot alternatives using `{ggExtra}`
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#................add marginal plots with {ggExtra}...............
+# also try "density", "boxplot"
+ggMarginal(p1, type = "histogram")
+```
+
+### Alt 3: scatter + marginal plot with 2+ groups
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#............scatter plot with points colored by site............
+p2 <- stream_chem_all |> 
+  filter(waterYr == 2024) |> 
+  ggplot(aes(x = DOC, y = pH, color = site)) + 
+  geom_point(alpha = 0.5) +
+  theme(legend.position = 'bottom')
+
+p2
+
+#..................with marginal density plot....................
+ggMarginal(p2, type = "density", groupFill = TRUE, groupColour = TRUE)
+```
+
+## Trend lines
+
+### Default (<1000 data points): LOESS method
+
+```{r}
+#| eval: true
+#| echo: true
+#......................add a smoothed line.......................
+stream_chem_all |> 
+  filter(waterYr %in% c(2014:2024)) |> 
+  filter(site == "W5") |> 
+  ggplot(aes(DOC, pH)) +
+  geom_point() +
+  geom_smooth()
+```
+
+### Line of best fit
+
+```{r}
+#| eval: true
+#| echo: true
+#........................add a trend line........................
+stream_chem_all |> 
+  filter(waterYr %in% c(2014:2024)) |>  
+  filter(site == "W5") |> 
+  ggplot(aes(x = DOC, y = pH)) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = 'lm', se = FALSE)
+```
+
+## Visualizing a third numeric variable
+
+### Bubble charts
+
+- be mindful: it's challenging to interpret 3 numeric variables
+    
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#..........................bubble chart..........................
+stream_chem_all |> 
+  filter(waterYr == 2024) |> 
+  ggplot(aes(x = DOC, y = pH, color = site, size = Al_ICP)) + 
+  geom_point(alpha = 0.5) +
+  labs(x = "DOC (mg/L)", size = "Al (mg/L)", color = "Site")
+```
+
+- adjust size range of bubbles
+- IMPORTANT: don't scale size by radius (can be deceptive)
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#| layout-ncol: 2
+#.......................scale size by area.......................
+stream_chem_all |> 
+  filter(waterYr == 2024) |> 
+  ggplot(aes(x = DOC, y = pH, color = site, size = Al_ICP)) + 
+  geom_point(alpha = 0.5) +
+  scale_size(range = c(1, 10)) +
+  labs(x = "DOC (mg/L)", size = "Al (mg/L)", color = "Site")
+
+#...................DON'T scale size by radius...................
+# stream_chem_data |> 
+#   filter(waterYr == 2024) |> 
+#   ggplot(aes(x = DOC, y = pH, color = site, size = Al_ICP)) + 
+#   geom_point(alpha = 0.5) +
+#   scale_radius(range = c(1, 10)) +
+#   labs(x = "DOC (mg/L)", size = "Al (mg/L)", color = "Site")
+```
+
+### Use color for third numeric variable
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#...................color for a third variable...................
+stream_chem_all |> 
+  filter(waterYr == 2024) |> 
+  ggplot(aes(x = DOC, y = pH, color = Al_ICP)) + 
+  geom_point(alpha = 0.5, size = 2) +
+  scale_color_viridis_c() +
+  labs(x = "DOC (mg/L)")
+```
+
+### But oftentimes best to just create two different plots
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#| layout-ncol: 2
+#......................effect of DOC on pH.......................
+stream_chem_all |> 
+  filter(waterYr == 2024) |> 
+  ggplot(aes(x = DOC, y = pH, color = site)) + 
+  geom_point(alpha = 0.5)
+
+#....................effect of DOC on Al_ICP.....................
+stream_chem_all |> 
+  filter(waterYr == 2024) |> 
+  ggplot(aes(x = Al_ICP, y = pH, color = site)) + 
+  geom_point(alpha = 0.5)
+```
+
+## Overplotting
+
+- if you have too many points, scatter plots can be ineffective
+
+```{r}
+#| eval: true
+#| echo: false
+#| warning: false
+#.....................wayyyy too many points.....................
+ggplot(stream_chem_all, aes(SO4, pH)) +
+  geom_point()
+```
+
+### Initial strategies
+
+```{r}
+#| eval: true
+#| echo: false
+#| warning: false
+#| layout-ncol: 3
+#................smaller, more transparent points................
+ggplot(stream_chem_all, aes(x = SO4, y = pH)) + 
+  geom_point(alpha = 0.4, size = 0.5) 
+
+#..........................add rug plot..........................
+ggplot(stream_chem_all, aes(x = SO4, y = pH)) + 
+  geom_point(size = 0.5, alpha = 0.3) +
+  geom_rug()
+
+#.........................color by group.........................
+ggplot(stream_chem_all, aes(x = SO4, y = pH, color = site)) + 
+  geom_point(size = 0.5, alpha = 0.3)
+```
+
+### Alt 1: 2d heatmaps
+
+- e.g. like you're looking down on a histogram
+
+```{r}
+#| eval: true
+#| echo: false
+#| warning: false
+#| layout-ncol: 2
+#....................heatmap of 2d bin counts....................
+ggplot(stream_chem_all, aes(x = SO4, y = pH)) +
+  geom_bin2d() +
+  scale_fill_viridis_c()
+
+#..................heatmap with hexagonal bins...................
+ggplot(stream_chem_all, aes(x = SO4, y = pH)) +
+  geom_hex() +
+  scale_fill_viridis_c() +
+  guides(fill = guide_colorbar(title = "Count", 
+                                barwidth = 1, barheight = 15))
+```
+
+### Alt 2: 2d density / contour plots
+
+- e.g. like you're looking down on a density plot
+- legend provides an estimate of the proportion of data points fall within a colored region (density of distribution of points sums to 1)
+    - interpreting legend: 0-2% of of points fall within a 1x1 square in the darkest blue region, while 24-26% fall within a 1x1 square in the brightest yellow region
+
+```{r}
+#| eval: true
+#| echo: false
+#| warning: false
+#..........................contour plot..........................
+ggplot(stream_chem_all, aes(x = SO4, y = pH)) +
+  geom_density_2d_filled()
+```
+
+### Alt 3: 2d density plots using `{ggdensity}`
+
+- can be easier to interpret
+- compute and plot the resulting highest density regions (HDRs)
+- HDRs are computed to be the smallest such regions that bound that level of probability
+
+```{r}
+#| eval: true
+#| echo: false
+#| warning: false
+#................2d density plot with {ggdensity}................n. 
+ggplot(stream_chem_all, aes(x = SO4, y = pH)) +
+  geom_hdr()
+```
