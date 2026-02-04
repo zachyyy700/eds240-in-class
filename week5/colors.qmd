@@ -1,0 +1,213 @@
+---
+title: "TEMPLATE - colors"
+author: "Your Name"
+date: 2026-02-04
+toc: true
+---
+
+::: {.callout-note}
+This template follows [lecture 5.2 slides](https://eds-240-data-viz.github.io/course-materials/lecture-slides/lecture5.2-colors-slides.html#/title-slide){target="_blank"}. Please be sure to cross-reference the slides, which contain important information and additional context!
+:::
+
+## Setup
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#| message: false
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##                                    setup                                 ----
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#..........................load packages.........................
+library(palmerpenguins)
+library(tidyverse)
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##                              create base plots                           ----
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# requires categorical color scale ----
+cat_color_plot <- ggplot(na.omit(penguins), 
+                         aes(x = bill_length_mm, y = bill_depth_mm, 
+                             color = species, shape = species)) +
+  geom_point(size = 4, alpha = 0.8)
+
+cat_color_plot
+
+# requires continuous color scale ----
+con_color_plot <- ggplot(na.omit(penguins), 
+                         aes(x = bill_length_mm, y = bill_depth_mm, 
+                             color = body_mass_g)) +
+  geom_point(size = 4, alpha = 0.8) 
+
+con_color_plot
+```
+
+## Colors for inclusive & accessible design
+
+### Viridis scales
+
+- Check out the [documentation](https://ggplot2.tidyverse.org/reference/scale_viridis.html) for additional viridis palette options. 
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+
+# discrete viridis scales ----
+cat_color_plot +
+  scale_color_viridis_d(option ='viridis')
+
+# continuous color scales ----
+con_color_plot +
+  scale_color_viridis_c(option= 'magma')
+```
+
+### RColorBrewer scales
+
+- Exploring available palettes and generating HEX codes (or check out the [web-based interface](https://colorbrewer2.org/#type=sequential&scheme=BuGn&n=3)):
+
+```{r}
+#| eval: true
+#| echo: true
+# display only colorblind-friendly RColorBrewer palettes ----
+RColorBrewer::display.brewer.all(colorblindFriendly = TRUE)
+
+# preview palette with your number of desired colors ----
+RColorBrewer::display.brewer.pal(n = 3, name = "Dark2")
+
+# print the HEX codes of your palette ----
+RColorBrewer::brewer.pal(n = 3, name = "Dark2")
+
+# or save hex codes as a vector ----
+my_brewer_pal <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
+
+```
+
+- Using RColorBrewer palettes
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+
+# for qualitative palettes ----
+cat_color_plot +
+  scale_color_brewer(palette = "Dark2")
+
+# for unclassed continuous color scales ----
+con_color_plot +
+  scale_color_distiller(palette = "BuPu", direction = 1)
+
+# for classed continuous color scales ----
+con_color_plot +
+  scale_color_fermenter(palette = "YlGnBu")
+
+# Accessibility tip:
+ggplot(penguins, aes(x = bill_length_mm, y = bill_depth_mm, fill = body_mass_g)) + 
+  geom_point(shape = 21, size = 4, alpha = 0.8) + 
+  scale_fill_fermenter(palette = "YlGnBu")
+```
+
+
+## `{paletteer}`
+
+A few different ways to use `{paletteer}` palettes, but my preferred approach takes two steps: 
+
+1. create vector of colors using `paletteer_*()`
+2. apply your palette using the appropriate `ggplot::scale_*()` function
+
+
+```{r}
+#| eval: true
+#| echo: true
+# import {paletteer} ----
+library(paletteer)
+```
+
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#| message: false
+
+
+# Discrete Data ------
+
+# Step 1: Create palette
+pal_d  <- paletteer::paletteer_d("wesanderson::GrandBudapest1", n = 3)
+
+#Step 2 Apply palette using `color` variant 
+cat_color_plot +
+  scale_color_manual(values = pal_d)
+
+#Step 2 Apply palette using `fill` variant)
+ggplot(penguins, aes(x = body_mass_g, fill = species)) +
+  geom_histogram() +
+  scale_fill_manual(values = pal_d)
+```
+
+
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#| message: false
+
+# Continuous Data ------
+
+## Step 1:  create palette
+pal_c  <- paletteer::paletteer_c("scico::batlow", n = 5, direction = -1)
+
+#Step 2: Apply palette using `gradientn` variant
+con_color_plot +
+  scale_color_gradientn(colors = pal_c)
+
+#Step 2: Apply palette using `stepsn` variant
+con_color_plot +
+  scale_color_stepsn(colors = pal_c)
+```
+
+## Some final palette tips
+
+### Save palette outside of plot
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+# create palette ----
+my_palette <- c("#32DE8A", "#E36414", "#0F4C5C")
+
+# plot with custom palette ----
+cat_color_plot +
+  scale_color_manual(values= my_palette)
+
+```
+
+### Set color names
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+# create palette ----
+my_palette_named <- c("Adelie" = "#32DE8A","Chinstrap" = "#E36414", "Gentoo" = "#0F4C5C")
+
+# apply to plot (all penguins) ----
+ggplot(penguins, aes(x = bill_length_mm, y = bill_depth_mm, color = species)) +
+  geom_point(size = 4, alpha = 0.8) +
+  scale_color_manual(values = my_palette_named)
+
+# apply to plot (just adelie & gentoo) ----
+penguins |> 
+  filter(species != "Chinstrap") |> 
+  ggplot(aes(x = bill_length_mm, y = bill_depth_mm, color = species)) +
+  geom_point(size = 4, alpha = 0.8) +
+  scale_color_manual(values = my_palette_named)
+```
+
