@@ -1,0 +1,70 @@
+---
+title: "My MEDS"
+format: closeread-html
+---
+
+:::: {.cr-section layout="sidebar-right"}
+@cr-intro
+
+Test text ![](images/reze.jpeg) (教えてあげる)
+
+::: {#cr-intro}
+# Zach Loo: My MEDS Journey
+
+Come with me and I'll show you everything.
+:::
+::::
+
+<!---Summer Divider--->
+
+:::: {.cr-section layout="sidebar-right"}
+
+![](images/summer_hike.png) @cr-summer
+
+::: {#cr-summer}
+# Summer MEDS
+
+Summer MEDS Text
+:::
+::::
+
+<!---Fall Divider--->
+
+:::: {.cr-section layout="sidebar-right"}
+
+![](images/fall_joshtree.png) @cr-fall
+
+::: {#cr-fall}
+# Fall MEDS
+
+Fall MEDS Text
+:::
+::::
+
+<!---Winter Divider--->
+
+::::{.cr-section layout="sidebar-left"}
+
+![](images/winter_falls.png) @cr-winter
+
+::: {#cr-winter}
+# Winter MEDS
+
+Winter MEDS Text
+:::
+
+::::
+
+<!---Spring Divider--->
+
+::::{.cr-section layout="sidebar-left"}
+
+![](images/horse_placeholder.png) @cr-spring
+
+::: {#cr-spring}
+# Spring MEDS
+
+Spring MEDS Text
+:::
+
+::::
