@@ -1,0 +1,296 @@
+---
+title: "TEMPLATE - interactive data visualization"
+subtitle: "plotly & htmlwidgets"
+author: "Zach Loo"
+date: 2026-03-4
+toc: true
+---
+
+::: {.callout-note}
+This template follows the [interactive data visualization](../lecture-slides/SLIDES-interactivity.qmd){target="_blank"} slides. Please be sure to cross-reference the slides, which contain important conceptual context and comparisons!
+:::
+
+## Setup
+
+::: {.callout-note}
+We use the `storms` dataset from `{dplyr}` throughout this lab — no external file needed. It contains Atlantic storm tracks with wind speed, pressure, storm status, and geographic position from 1975 to 2022.
+:::
+
+
+```{r setup-echo}
+#| eval: true
+#| echo: true
+#| warning: false
+#| message: false
+
+#..........................load packages.........................
+library(tidyverse)
+library(plotly)
+library(htmlwidgets)
+library(scales)
+library(dplyr)
+
+#.......................preview the dataset.......................
+glimpse(storms)
+```
+
+
+**Key variables in `storms`:**
+
+| Variable | Type | Description |
+|---|---|---|
+| `name` | character | Storm name |
+| `year`, `month`, `day`, `hour` | numeric | Date & time of observation |
+| `lat`, `long` | numeric | Storm center position |
+| `status` | factor | `"tropical depression"`, `"tropical storm"`, `"hurricane"`, etc. |
+| `category` | numeric | Saffir-Simpson category (1–5; `NA` for non-hurricanes) |
+| `wind` | numeric | Max sustained wind speed (knots) |
+| `pressure` | numeric | Min central pressure (millibars) |
+| `tropicalstorm_force_diameter` | numeric | Diameter (nautical miles) of TS-force winds |
+
+
+## Wrangle data
+
+```{r}
+storms_clean <- storms |>
+  filter(!is.na(wind), !is.na(pressure), !is.na(status)) %>%
+  group_by(name, year, status) %>%
+  summarise(
+    wind     = mean(wind, na.rm = TRUE),
+    pressure = mean(pressure, na.rm = TRUE),
+    .groups  = "drop"
+  )
+
+```
+
+
+
+## Part 1: `ggplotly()` — converting a static ggplot
+
+See slides: [Two approaches](../lecture-slides/SLIDES-interactivity.qmd#two-approaches){target="_blank"} and [ggplotly()](../lecture-slides/SLIDES-interactivity.qmd#ggplotly-how){target="_blank"}
+
+### Build a static ggplot
+
+We start with a jitter plot of wind speed vs. pressure.
+
+
+```{r}
+#| eval: true
+#| echo: true
+#| warning: false
+#| fig-align: "center"
+#| out-width: "80%"
+
+ggplot_static <- storms_clean |> 
+  ggplot(aes(x = pressure, y = wind, color = status, 
+  text  = paste0(
+      "<b>", name, " (", year, ")</b><br>",
+      "Status: ", status, "<br>",
+      "Wind: ", round(wind,1), " kt<br>",
+      "Pressure: ", round(pressure,1), " mb"))) +
+  geom_jitter(alpha = 0.35, size = 0.9, width = 1.5, height = 1.5) +
+  theme_minimal() +
+  scale_color_brewer(palette = 'Paired') +
+  labs(x = 'Pressure (mb)', y = 'Wind Speed (knots)', title = 'Atlantic Storm Intensity by Status', color = 'Status')
+
+ggplot_static
+```
+
+
+
+### Convert to interactive with `ggplotly()`
+
+```{r}
+ggplotly(ggplot_static, tooltip = 'text')
+```
+
+::: {.callout-tip}
+**Try it:** 
+
+- Hover over any point to see the formatted label.
+- Click a status category in the legend to hide it.
+- Double click a status category to view only that category. 
+- Drag to zoom; double-click to reset. 
+
+The toolbar in the top-right gives additional controls!
+:::
+
+### Customising `ggplotly()` output
+
+A few small tweaks make `ggplotly()` output cleaner:
+
+```{r ggplotly-polished}
+#| eval: true
+#| echo: true
+#| warning: false
+
+ggplotly(ggplot_static, tooltip = "text") |>
+  layout(
+    hoverlabel = list(bgcolor = "white", bordercolor = "grey80",
+                      font = list(size = 12))
+  ) |>
+  config(displaylogo = FALSE,
+         modeBarButtonsToRemove = list("select2d", "lasso2d"))
+```
+
+---
+
+## Part 2: `plot_ly()` — native plotly for more control
+
+See slides: [plot_ly() grammar](../lecture-slides/SLIDES-interactivity.qmd#plot-ly-grammar){target="_blank"} and [animation](../lecture-slides/SLIDES-interactivity.qmd#animation-intro){target="_blank"}
+
+### Bar chart: storm counts by status and decade
+
+```{r bar-chart}
+#| eval: true
+#| echo: true
+#| warning: false
+
+storms_clean |>
+  mutate(decade = paste0(floor(year / 10) * 10, "s")) |>
+  count(decade, status) |>
+  plot_ly(
+    x             = ~decade,
+    y             = ~n,
+    color         = ~status,
+    colors        = RColorBrewer::brewer.pal(8, "Paired"),
+    type          = "bar",
+    text          = ~paste0("<b>", status, "</b><br>n = ", n),
+    textposition  = "none",
+    hoverinfo     = "text"  ) |>
+  layout(
+    barmode = "stack",
+    title   = "Atlantic Storm Counts by Decade and Status",
+    xaxis   = list(title = "Decade"),
+    yaxis = list(title = ""),
+    legend  = list(title = list(text = "<b>Status</b>"))
+  )
+```
+
+```{r}
+#| warning: false
+#| message: false
+
+land <- "#2d3436"
+water <- "#1a1a2e"
+
+plot_ly(storms, 
+        lat = ~lat,
+        lon = ~long,
+        frame = ~year,
+        type = "scattergeo", 
+        mode = "markers", 
+        color = ~as.factor(category),
+        colors = RColorBrewer::brewer.pal(5, "BuPu"),
+        marker = list(size = 6, opacity = 0.7),
+        text = ~paste0("<b>", name, "</b><br>Category: ", category),
+        hoverinfo = "text") |>
+  layout(
+    title = "Atlantic Storm Positions by Year",
+    geo = list(
+      scope        = "north america", 
+      showland     = TRUE,  landcolor  = land, 
+      showocean    = TRUE,  oceancolor = water,
+      showcoastlines = TRUE, coastlinecolor = "#636e72",
+      showlakes    = TRUE,  lakecolor  = water,
+      bgcolor      = water,
+      projection   = list(type = "mercator"),
+      lonaxis      = list(range = c(-110, -10)),
+      lataxis      = list(range = c(5, 60))
+    ),
+    paper_bgcolor = water, 
+    font = list(color = "white")
+  ) |>
+  animation_opts(frame = 500)
+
+```
+
+---
+
+## Part 3: Saving and embedding widgets
+
+See slides: [saveWidget()](../lecture-slides/SLIDES-interactivity.qmd#htmlwidgets-save){target="_blank"} and [embedding in Quarto](../lecture-slides/SLIDES-interactivity.qmd#quarto-embed){target="_blank"}
+
+### Save a widget to a standalone HTML file
+
+```{r save-widget}
+#| eval: false
+#| echo: true
+
+#...............assign the animated chart to an object...........
+land <- "#2d3436"
+water <- "#1a1a2e"
+
+animated_storms <- plot_ly(storms, 
+        lat = ~lat,
+        lon = ~long,
+        frame = ~year,
+        type = "scattergeo", 
+        mode = "markers", 
+        color = ~as.factor(category),
+        colors = RColorBrewer::brewer.pal(5, "BuPu"),
+        marker = list(size = 6, opacity = 0.7),
+        text = ~paste0("<b>", name, "</b><br>Category: ", category),
+        hoverinfo = "text") |>
+  layout(
+    title = "Atlantic Storm Positions by Year",
+    geo = list(
+      scope        = "north america", 
+      showland     = TRUE,  landcolor  = land, 
+      showocean    = TRUE,  oceancolor = water,
+      showcoastlines = TRUE, coastlinecolor = "#636e72",
+      showlakes    = TRUE,  lakecolor  = water,
+      bgcolor      = water,
+      projection   = list(type = "mercator"),
+      lonaxis      = list(range = c(-110, -10)),
+      lataxis      = list(range = c(5, 60))
+    ),
+    paper_bgcolor = water, 
+    font = list(color = "white")
+  ) |>
+  animation_opts(frame = 1000)
+
+#.....save as a self-contained HTML — anyone can open this file.....
+saveWidget(animated_storms,
+           file = here::here("week9", "storms_animated.html"),
+           selfcontained = TRUE)
+
+```
+
+::: {.callout-note}
+`selfcontained = TRUE` bundles all JavaScript and CSS into a single ~3 MB file. Set it to `FALSE` if you are hosting the file on a web server — this produces a smaller HTML plus a `_files/` folder.
+:::
+
+### Embedding works automatically in Quarto
+
+In a Quarto HTML document, you do **not** need `saveWidget()`. Just print the widget object inside a code chunk — Quarto handles embedding automatically when you click **Render**.
+
+```{r embed-demo}
+#| eval: true
+#| echo: true
+#| warning: false
+
+# Assign and print — Quarto embeds this in the rendered HTML
+trend_widget <- storms_clean |>
+  mutate(decade = paste0(floor(year / 10) * 10, "s")) |>
+  count(decade, status) |>
+  plot_ly(
+    x             = ~decade,
+    y             = ~n,
+    color         = ~status,
+    colors        = RColorBrewer::brewer.pal(8, "Paired"),
+    type          = "bar",
+    text          = ~paste0("<b>", status, "</b><br>n = ", n),
+    textposition  = "none",
+    hoverinfo     = "text"  ) |>
+  layout(
+    barmode = "stack",
+    title   = "Atlantic Storm Counts by Decade and Status",
+    xaxis   = list(title = "Decade"),
+    yaxis = list(title = ""),
+    legend  = list(title = list(text = "<b>Status</b>"))
+  )
+
+trend_widget   # printing here embeds it in the rendered output
+```
+

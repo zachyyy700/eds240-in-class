@@ -1,0 +1,128 @@
+---
+title: "TEMPLATE - alternative chart types practice"
+author: "Zach Loo"
+date: 2026-03-04
+toc: true
+---
+
+::: {.callout-note}
+This template accompanies the [alternative chart types practice slides](https://eds-240-data-viz.github.io/course-materials/lecture-slides/SLIDES-alt-charts.html#/title-slide){target="_blank}. Please be sure to cross-reference the slides, which contain important information and additional context!
+:::
+
+# Waffle Chart (Sasquatch sightings)
+
+- Typefaces used: Ultra & Josefin Sans
+- Colors used: "#357266", "#FFB813", "#983A06", "#005F71", "#757473", "#EFEFEF"
+
+```{r}
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+#| fig-align: "center"
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##                                    setup                                 ----
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#..........................load packages.........................
+library(tidyverse)
+library(waffle)
+library(showtext)
+
+#..........................import data...........................
+bigfoot <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-09-13/bigfoot.csv')
+
+glimpse(bigfoot)
+font_add_google('Emilys Candy', 'candy')
+```
+
+```{r fig.width=6, fig.height=3}
+showtext_auto()
+# Count by season, handle NAs
+season_counts <- bigfoot |>
+  filter(!is.na(season), season != 'Unknown') |>
+  count(season) |>
+  tibble::deframe()  # named vector required by waffle
+
+# Season colors
+season_colors <- c(
+  "Spring" = "#78C679",
+  "Summer" = "#F4D03F", 
+  "Fall"   = "#E67E22",
+  "Winter" = "#85C1E9"
+)
+
+bigfoot |>
+  filter(!is.na(season), season != "Unknown") |>
+  count(season) |>
+  ggplot(aes(fill = season, values = n)) +
+  geom_waffle(n_rows = 50, size = 0.5, colour = "white", flip = FALSE) +
+  scale_fill_manual(values = c(
+    "Spring" = "#78C679",
+    "Summer" = "#F4D03F",
+    "Fall"   = "#E67E22",
+    "Winter" = "#85C1E9")) +
+    labs(title = 'I Love Bigfeet') +
+    coord_equal() +
+    theme_void() +
+    theme(
+        legend.position = 'bottom',
+        legend.title = element_blank(),
+        plot.title = element_text(family = 'candy', hjust = 0.5, size = 30)
+    )
+```
+
+```{r}
+ggsave(here::here('week9', 'bigfoot.png'), width = 6, height = 3, dpi = 150)
+```
+
+# Bump chart (highest paying occupations)
+
+- Typefaces used: Passion One & Oxygen
+- Colors used: `viridisLite::magma()` & "#2A114E", "#6D6B71", "#FFF8F4"
+
+```{r}
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##                                    setup                                 ----
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#..........................load packages.........................
+library(tidyverse)
+library(ggbump)
+library(ggtext)
+library(showtext)
+
+#..........................import data...........................
+jobs <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-03-05/jobs_gender.csv")
+```
+
+# Stream graph (energy production)
+
+- Typefaces used: Exo 2 & Open Sans
+- Colors used: `paletteer::paletteer_d("MetBrewer::Archambault", n = 7)`
+
+```{r}
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##                                    setup                                 ----
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#..........................load packages.........................
+library(tidyverse)
+library(ggstream)
+library(ggtext)
+library(showtext)
+
+#..........................import data...........................
+capacity <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2022/2022-05-03/capacity.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
